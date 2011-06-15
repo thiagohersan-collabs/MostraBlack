@@ -1,11 +1,16 @@
 /*
  * Sketch for reading sensor data, fading lights and playing an audio.
  *
- * Has complicated serial communication: requests data, and waits for answers...
+ * Simplified serial communication : Arduino sends data everytime a sensor is fired.
+ *                                   Just have to clear buf before going to a state
+ *                                   that reads it, and then read the very last value ...
+ *
  */
 
-
 import processing.serial.*;
+import processing.opengl.*;
+import krister.Ess.*;
+
 
 // number of squares on the wall...
 static final int NUM_SQS = 6;
@@ -18,29 +23,39 @@ static final int STATE_PLAY   = 3;
 int myState;
 
 // for simulating an audio file
-static final int audioLen = 40;
+static final int audioLen = 200;
 int audio = audioLen;
 
 // for keeping track of squares and their brightness
 int playingNum;
 int fadeLevel;
 // might also need :
-// int[NUM_SQS] sqX, sqY;
-// int[NUM_SQS] sqH, sqW;
+// Tuple[] sqPos  = new Tuple[NUM_SQS];
+// Tuple[] sqDim  = new Tuple[NUM_SQS];
+// Tuple[] txtPos = new Tuple[NUM_SQS];
+Tuple[] txtDim = new Tuple[NUM_SQS];
+
 
 // Images of squares to be updated
 PImage[] mySquares = new PImage[NUM_SQS];
 // Serial connection
 Serial mySerial = null;
+// font
+PFont font;
+// sound file streams
+AudioChannel[] myAudio;
 
 void setup() {
-  size(380, 260);
+  size(380, 260, OPENGL);
   background(0, 0, 0);
   println(Serial.list());
 
+  Ess.start(this);
+
+  // not playing any audio
   playingNum = -1;
   // while listening, this is always -255 
-  // which means (waiting to fade to black)
+  // which means waiting to fade to black
   fadeLevel = -255;
 
   // draw some white squares
@@ -51,9 +66,18 @@ void setup() {
         t.set(j, k, color(255, 255, 255, 255));
     mySquares[i] = t;
     image(t, (i%3)*120+20, (i/3)*120+20);
+    
+    // setup audio file streams
+    myAudio[i] = new AudioChannel("file"+i+".wav");
   }
 
+  // setup serial port
   mySerial = new Serial(this, (String)Serial.list()[0], 9600);
+  // setup font
+  font = loadFont("Courier10PitchBT-Bold-48.vlw");
+  textFont(font, 16);
+  fill(255,255,255);
+  // initial state
   myState = STATE_START;
 }
 
@@ -69,14 +93,13 @@ void draw() {
       int myRead = mySerial.read();
       // got start signal
       if (myRead == 'A') {
-        // request data (first request)
+        // send start signal
         mySerial.write('A');
-        // make sure other side has a delay before
-        // it sends stuff so this side can clear buf
-        mySerial.clear();
         // update state
         myState = STATE_LISTEN;
         System.out.println("started listening");
+        // very last thing before going to LISTEN
+        mySerial.clear();
       }
       // got something, but didn't get start signal... keep waiting
       else {
@@ -91,18 +114,16 @@ void draw() {
 
   // listen state : play default audio/visual
   //                wait for data from the other side
-  //                invariant : there's a standing request for data while in this state
+  //                invariant : the serial buf is clear when we come in the first time
   else if (myState == STATE_LISTEN) {
-    // if there's stuff on serial
+    // assume buf was cleared before we got here
+    // if there's stuff on serial, it's new
     if (mySerial.available() > 0) {
-      //println("listen: "+mySerial.available());
-      int myRead = mySerial.read();
+      int myRead = mySerial.last();
       // read number into a variable
       // READ IT HERE! and check if it's a number!!
       playingNum = myRead;
       System.out.println("Got Go From: "+myRead);
-      // clear serial buffer
-      mySerial.clear();
       // play what you just got
       myState = STATE_FADE;
     }
@@ -132,12 +153,10 @@ void draw() {
       System.out.println("done with fade out");
       // setup the fade in
       fadeLevel = 1;
-      // clear buff
-      mySerial.clear();
-      // request data for a stop signal
-      mySerial.write('A');
       // next state
       myState = STATE_PLAY;
+      // last thing we do here : clear buff
+      mySerial.clear();
     }
     // have turned up all of the lights. ready to leave
     else if (fadeLevel > 255) {
@@ -145,15 +164,10 @@ void draw() {
       // reset the fade level to -255
       // (always -255 while listening, meaning "ready to fade out")
       fadeLevel = -255;
-      // already requested in play...
-      // clear buf
-      mySerial.clear();
-      // request data
-      // possible that there's already a request in arduino buffer
-      // but this is safer than requesting data before fading back in
-      mySerial.write('A');
       // go back to listen
       myState = STATE_LISTEN;
+      // last thing we do here : clear buf
+      mySerial.clear();
     }
     // while fading... keep fading...
     else {
@@ -182,30 +196,36 @@ void draw() {
 
   // play state : play audio/video (non-blocking?!)
   //              listen for stop signal
-  //              invariant : there's a standing request for data while in this state
+  //              invariant : the serial buf was cleared before we got here the first time
   else if (myState == STATE_PLAY) {
-    // if not playing anything, start audio
+    // if not playing anything, check where we are
     if (audio == audioLen) {
       System.out.println("start Playing");
       // start playing audio
+      myAudio[numPlaying].play();
       audio--;
+      // show text...
+      fill(255,255,255);
+      text((playingNum+": blah blablalhabl ajhakjhdkj ak kdajh dakj d akhd jsd h"), 
+      (playingNum%3)*120+20, (1-(playingNum/3))*120+20, 100, 100);
     }
     // if at the end of the audio, stop audio and go back to fade
     else if (audio == 0) {
-      System.out.println("done Playing: "+mySerial.available());
       // done playing, reset my variable
       audio = audioLen;
       // go back to fade state for fade in
       myState = STATE_FADE;
+      // erase text...
+      fill(0,0,0,128);
+      rect((playingNum%3)*120+20, (1-(playingNum/3))*120+20, 100, 100);
+      delay(500);
     }
     // while playing, keep playing and listening for stop requests
     else {
-      // if there's stuff on serial, check if it's the same number that we're playing
+      // if there's stuff on serial, it's new
       if (mySerial.available() > 0) {
-        //println("play: "+mySerial.available());
         // if it's the same number that is playing, stop audio
-        int t = mySerial.read();
-        if ( t == playingNum ) {
+        if ( mySerial.last() == playingNum ) {
           System.out.println("STOP Playing");
           // stop audio
           audio = 0;
@@ -215,17 +235,8 @@ void draw() {
           // keep playing
           audio--;
         }
-        // regardless of number, request new data
-        // (either a STOP signal, or a signal for LISTEN state)
-        // clear serial buffer
-        mySerial.clear();
-        // send new request for PLAY state
-        mySerial.write('A');
       }
       // nothing on serial... keep playing
-      // if it never gets a stop request, arduino will
-      // have 2 requests on buffer when we go back to LISTEN
-      // (it's ok. safer than sending a LISTEN request from here, before fade in)
       else {
         audio--;
       }
@@ -233,7 +244,13 @@ void draw() {
   } // STATE_PLAY
 } // draw()
 
-// stupid function.
+// stop function for cleaning up stuff
+public void stop() {
+  Ess.stop();
+  super.stop();
+}
+
+// stupid function for fading squares...
 void setAlpha(PImage img, int a) {
   for (int i=0; i<img.height; i++) {
     for (int j=0; j<img.width; j++) {
@@ -241,4 +258,10 @@ void setAlpha(PImage img, int a) {
     }
   }
 }
+
+// stupid class for keeping x,y info
+public class Tuple {
+ public int x,y; 
+}
+
 
