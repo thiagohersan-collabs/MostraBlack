@@ -9,8 +9,7 @@
 
 import processing.serial.*;
 import processing.opengl.*;
-import krister.Ess.*;
-
+import ddf.minim.*;
 
 // number of squares on the wall...
 static final int NUM_SQS = 6;
@@ -22,10 +21,6 @@ static final int STATE_FADE   = 2;
 static final int STATE_PLAY   = 3;
 int myState;
 
-// for simulating an audio file
-static final int audioLen = 200;
-int audio = audioLen;
-
 // for keeping track of squares and their brightness
 int playingNum;
 int fadeLevel;
@@ -33,7 +28,7 @@ int fadeLevel;
 // Tuple[] sqPos  = new Tuple[NUM_SQS];
 // Tuple[] sqDim  = new Tuple[NUM_SQS];
 // Tuple[] txtPos = new Tuple[NUM_SQS];
-Tuple[] txtDim = new Tuple[NUM_SQS];
+// Tuple[] txtDim = new Tuple[NUM_SQS];
 
 
 // Images of squares to be updated
@@ -43,14 +38,16 @@ Serial mySerial = null;
 // font
 PFont font;
 // sound file streams
-AudioChannel[] myAudio;
+Minim minim;
+AudioPlayer[] myAudio = new AudioPlayer[NUM_SQS];
 
 void setup() {
   size(380, 260, OPENGL);
   background(0, 0, 0);
   println(Serial.list());
 
-  Ess.start(this);
+  // audio lib
+  minim = new Minim(this);
 
   // not playing any audio
   playingNum = -1;
@@ -66,9 +63,8 @@ void setup() {
         t.set(j, k, color(255, 255, 255, 255));
     mySquares[i] = t;
     image(t, (i%3)*120+20, (i/3)*120+20);
-    
-    // setup audio file streams
-    myAudio[i] = new AudioChannel("file"+i+".wav");
+    // audio streams
+    myAudio[i] = minim.loadFile("file"+i+".aiff");
   }
 
   // setup serial port
@@ -76,7 +72,7 @@ void setup() {
   // setup font
   font = loadFont("Courier10PitchBT-Bold-48.vlw");
   textFont(font, 16);
-  fill(255,255,255);
+  fill(255, 255, 255);
   // initial state
   myState = STATE_START;
 }
@@ -124,6 +120,9 @@ void draw() {
       // READ IT HERE! and check if it's a number!!
       playingNum = myRead;
       System.out.println("Got Go From: "+myRead);
+      // setup audio player
+      // paranoid. this should already be at 0
+      myAudio[playingNum].rewind();
       // play what you just got
       myState = STATE_FADE;
     }
@@ -176,7 +175,7 @@ void draw() {
       // (if it crosses the 0, going from negative -> positive)
       // has to happen before drawing in order to get all-black squares
       boolean lt0 = (fadeLevel<0);
-      fadeLevel += 25;
+      fadeLevel += 10;
       if (lt0 && (fadeLevel>0)) {
         fadeLevel = 0;
       }
@@ -198,28 +197,33 @@ void draw() {
   //              listen for stop signal
   //              invariant : the serial buf was cleared before we got here the first time
   else if (myState == STATE_PLAY) {
-    // if not playing anything, check where we are
-    if (audio == audioLen) {
-      System.out.println("start Playing");
-      // start playing audio
-      myAudio[numPlaying].play();
-      audio--;
-      // show text...
-      fill(255,255,255);
-      text((playingNum+": blah blablalhabl ajhakjhdkj ak kdajh dakj d akhd jsd h"), 
-      (playingNum%3)*120+20, (1-(playingNum/3))*120+20, 100, 100);
+    // if not playing anything, check if it has to play or has played
+    if (myAudio[playingNum].isPlaying() == false) {
+      // if position is 0, then it hasn't started playing...
+      // play sound
+      if(myAudio[playingNum].position() == 0) {
+        System.out.println("start Playing");
+        // start sound
+        myAudio[playingNum].play();
+        // show text...
+        fill(255, 255, 255);
+        text((playingNum+": blah blablalhabl ajhakjhdkj ak kdajh dakj d akhd jsd h"), 
+        (playingNum%3)*120+20, (1-(playingNum/3))*120+20, 100, 100);
+      }
+      // else, it stopped for some other reason (stop or end of file)
+      // rewind and go back to fade
+      else {
+        // reset the player
+        myAudio[playingNum].rewind();
+        // go back to fade state for fade in
+        myState = STATE_FADE;
+        // erase text...
+        fill(0, 0, 0, 128);
+        rect((playingNum%3)*120+20, (1-(playingNum/3))*120+20, 100, 100);
+        delay(500);
+      }
     }
-    // if at the end of the audio, stop audio and go back to fade
-    else if (audio == 0) {
-      // done playing, reset my variable
-      audio = audioLen;
-      // go back to fade state for fade in
-      myState = STATE_FADE;
-      // erase text...
-      fill(0,0,0,128);
-      rect((playingNum%3)*120+20, (1-(playingNum/3))*120+20, 100, 100);
-      delay(500);
-    }
+
     // while playing, keep playing and listening for stop requests
     else {
       // if there's stuff on serial, it's new
@@ -228,17 +232,18 @@ void draw() {
         if ( mySerial.last() == playingNum ) {
           System.out.println("STOP Playing");
           // stop audio
-          audio = 0;
+          myAudio[playingNum].pause();
         }
         // got a different number
         else {
           // keep playing
-          audio--;
+          myState = STATE_PLAY;
         }
       }
       // nothing on serial... keep playing
       else {
-        audio--;
+        // keep playing
+        myState = STATE_PLAY;
       }
     }
   } // STATE_PLAY
@@ -246,7 +251,9 @@ void draw() {
 
 // stop function for cleaning up stuff
 public void stop() {
-  Ess.stop();
+  for (int i=0; i<NUM_SQS; i++)
+    myAudio[i].close();
+  minim.stop();
   super.stop();
 }
 
@@ -261,7 +268,6 @@ void setAlpha(PImage img, int a) {
 
 // stupid class for keeping x,y info
 public class Tuple {
- public int x,y; 
+  public int x, y;
 }
-
 
