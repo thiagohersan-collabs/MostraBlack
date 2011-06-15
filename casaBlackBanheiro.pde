@@ -1,27 +1,26 @@
 import processing.serial.*;
 
+// number of squares on the wall...
 static final int NUM_SQS = 6;
 
-Serial mySerial = null;
-
-// for first draft...
-boolean hasStarted = false;
-boolean needData = true;
-
 // for state-machine based implementation
+// has blocking play state...
 static final int STATE_START  = 0;
 static final int STATE_LISTEN = 1;
 static final int STATE_PLAY   = 2;
 int myState;
 
-// works but will have to be more sophisticated
+// for keeping track of squares and their brightness
 int playingNum;
 int fadeLevel;
-
-int fooCounter = 0;   // for testing
+// might also need :
+// int[NUM_SQS] sqX, sqY;
+// int[NUM_SQS] sqH, sqW;
 
 // Images of squares to be updated
 PImage[] mySquares = new PImage[NUM_SQS];
+// Serial connection
+Serial mySerial = null;
 
 void setup() {
   size(380, 260);
@@ -35,16 +34,13 @@ void setup() {
 
   // draw some white squares
   for (int i=0; i<NUM_SQS; i++) {
-    int x = i%3;
-    int y = i/3;
     PImage t = createImage(100, 100, ARGB);
     for (int j=0; j<t.width; j++)
       for (int k=0; k<t.height; k++)
         t.set(j, k, color(255, 255, 255, 255));
     mySquares[i] = t;
-    image(t, x*120+20, y*120+20);
+    image(t, (i%3)*120+20, (i/3)*120+20);
   }
-
 
   mySerial = new Serial(this, (String)Serial.list()[0], 9600);
   myState = STATE_START;
@@ -100,19 +96,7 @@ void draw() {
     // else, keep playing default stuff (try not to block)
     else {
       // play default a/v stuff
-
-      /*
-      // only update the background when drawing stuff
-      background(0, 0, 0);
-      // redraw all squares in white
-      for (int i=0; i<NUM_SQS; i++) {
-        PImage t = mySquares[i];
-        // assuming fadeLevel always equals -255 outside play state
-        setAlpha(t, abs(fadeLevel));
-        image(t, (i%3)*120+20, (i/3)*120+20);
-      }
-      */
-
+      // MIGHT have to play an audio, or text, otherwise just stay here
       // stay here
       myState = STATE_LISTEN;
     }
@@ -174,27 +158,6 @@ void draw() {
         image(t, (i%3)*120+20, (i/3)*120+20);
       }
     }
-
-    // old example....
-    // such a hack
-    if (fadeLevel != fadeLevel) {
-      if (fooCounter < 20) {
-        // keep playing stuff based on variable read from Serial
-        System.out.println("processing: "+int(20-fooCounter));
-        fooCounter++;
-      }
-      // done playing
-      else {
-        fooCounter = 0;
-        System.out.println("done processing");
-        // clear buf
-        mySerial.clear();
-        // request data
-        mySerial.write('A');
-        // go back to listen
-        myState = STATE_LISTEN;
-      }
-    }
   } // STATE_PLAY
 } // draw()
 
@@ -203,59 +166,6 @@ void setAlpha(PImage img, int a) {
   for (int i=0; i<img.height; i++) {
     for (int j=0; j<img.width; j++) {
       img.set(i, j, color(255, 255, 255, a));
-    }
-  }
-}
-
-
-void draw1() {
-
-  // if we need data and there's stuff on the serial port
-  // check to see if it's the begining of the communication
-  // or if it's data
-  if (needData == true) {
-    // check to see if there's stuff on serial
-    if (mySerial.available() > 0) {
-      int myRead = mySerial.read();
-      // read a start signal
-      if (hasStarted == false) {
-        if (myRead == 'A') {
-          mySerial.clear();
-          hasStarted = true;
-          mySerial.write('A');
-          System.out.println("started! listening!");
-        }
-      }
-      // read data
-      else {
-        System.out.println("got go from: "+myRead);
-        mySerial.clear();
-        delay(1000);
-        // process it, do stuff, probably don't want to be asking for data 
-        needData = false;
-      }
-    }
-    // nothing on serial, but I need data
-    else {
-      // sends a lot of these...
-      mySerial.write('A');
-    }
-  }
-  // don't need data, probably because I'm processing some stuff
-  else {
-    if (fooCounter > 20) {
-      System.out.println("done processing. need data");
-      needData = true;
-      mySerial.clear();
-      fooCounter = 0;
-      // show default image, play default sound
-    }
-    else {
-      System.out.println(int(20-fooCounter)+" processing....");
-      // show image/spot
-      // play audio
-      // (try not to block...)
-      fooCounter++;
     }
   }
 }
