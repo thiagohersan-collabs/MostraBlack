@@ -12,7 +12,14 @@ import processing.opengl.*;
 import ddf.minim.*;
 
 // number of squares on the wall...
-static final int NUM_SQS = 6;
+static final int NUM_SQS = 12;
+
+// font size
+static final int FONTSIZE = 16;
+
+// for reading input file
+BufferedReader reader;
+String readerLine;
 
 // for state-machine based implementation
 static final int STATE_START  = 0;
@@ -24,12 +31,15 @@ int myState;
 // for keeping track of squares and their brightness
 int playingNum;
 int fadeLevel;
-// might also need :
-// Tuple[] sqPos  = new Tuple[NUM_SQS];
-// Tuple[] sqDim  = new Tuple[NUM_SQS];
-// Tuple[] txtPos = new Tuple[NUM_SQS];
-// Tuple[] txtDim = new Tuple[NUM_SQS];
 
+// for light square position and dimension
+intTuple[] sqPos  = new intTuple[NUM_SQS];
+intTuple[] sqDim  = new intTuple[NUM_SQS];
+
+int txtIndex = -1;
+
+// text to be displayed with each sound
+String[] theTxt = new String[NUM_SQS];
 
 // Images of squares to be updated
 PImage[] mySquares = new PImage[NUM_SQS];
@@ -42,7 +52,7 @@ Minim minim;
 AudioPlayer[] myAudio = new AudioPlayer[NUM_SQS];
 
 void setup() {
-  size(380, 260, OPENGL);
+  size(1024, 768, OPENGL);
   background(0, 0, 0);
   println(Serial.list());
 
@@ -55,23 +65,62 @@ void setup() {
   // which means waiting to fade to black
   fadeLevel = -255;
 
+  // fill position and dimension arrays
+  //    for the light squares and text squares
+  reader = createReader("casaBlackSquarePositions.txt");    
+
+  // read position from file...
+  for (int i=0; i< NUM_SQS; i++) {
+    try {
+      readerLine = reader.readLine();
+    } 
+    catch (IOException e) {
+      e.printStackTrace();
+      readerLine = null;
+    }
+
+    String[] pieces = split(readerLine, TAB);
+    //println(int(pieces[0])+" "+int(pieces[1]));
+
+    intTuple itSP = new intTuple(int(pieces[0]), int(pieces[1]));
+    intTuple itSD = new intTuple(int(pieces[2]), int(pieces[3]));
+
+    sqPos[i] = itSP;
+    sqDim[i] = itSD;
+  }
+
+  // for the text....
+  txtIndex = 9;
+  for (int i=0; i<NUM_SQS; i++) {
+    String s = new String(i+": ");
+    for (int j=0; j<i; j++) {
+      s = s.concat(String.valueOf(i));
+    }
+    theTxt[i] = s;
+  }
+
   // draw some white squares
   for (int i=0; i<NUM_SQS; i++) {
-    PImage t = createImage(100, 100, ARGB);
+    PImage t = createImage(sqDim[i].getX(), sqDim[i].getY(), ARGB);
     for (int j=0; j<t.width; j++)
       for (int k=0; k<t.height; k++)
         t.set(j, k, color(255, 255, 255, 255));
     mySquares[i] = t;
-    image(t, (i%3)*120+20, (i/3)*120+20);
+    image(t, sqPos[i].getX(), sqPos[i].getY());
+
     // audio streams
     myAudio[i] = minim.loadFile("file"+i+".aiff");
   }
 
   // setup serial port
   mySerial = new Serial(this, (String)Serial.list()[0], 9600);
+
   // setup font
-  font = loadFont("Courier10PitchBT-Bold-48.vlw");
-  textFont(font, 16);
+  String[] fontList = PFont.list();
+  //println(fontList);
+  // futura 228 - 231
+  font = createFont(fontList[228], FONTSIZE, true);
+  textFont(font, FONTSIZE);
   fill(255, 255, 255);
   // initial state
   myState = STATE_START;
@@ -118,13 +167,29 @@ void draw() {
       int myRead = mySerial.last();
       // read number into a variable
       // READ IT HERE! and check if it's a number!!
-      playingNum = myRead;
-      System.out.println("Got Go From: "+myRead);
-      // setup audio player
-      // paranoid. this should already be at 0
-      myAudio[playingNum].rewind();
-      // play what you just got
-      myState = STATE_FADE;
+      if ((myRead > -1) && (myRead < NUM_SQS)) {
+        // check if it got the text square number, do nothing
+        if (myRead == txtIndex) {
+          // redundant
+          System.out.println("Got the text index from arduino... hmmm....");
+          myState = STATE_LISTEN;
+        }
+        // not the text square index, do stuff
+        else {
+          playingNum = myRead;
+          System.out.println("Got Go From: "+myRead);
+          // setup audio player
+          // paranoid. this should already be at 0
+          myAudio[playingNum].rewind();
+          // play what you just got
+          myState = STATE_FADE;
+        }
+      }
+      // number < 0 OR number > NUM_SQS
+      else {
+        myState = STATE_LISTEN;
+        System.out.println("Read a number out of bounds...  "+myState+"  . Problem in serial com (??)");
+      }
     }
     // else, keep playing default stuff and listening
     else {
@@ -188,7 +253,7 @@ void draw() {
         PImage t = mySquares[i];
         // change the fade in all squares, except the one that's playing
         setAlpha(t, (i==playingNum)?255:abs(fadeLevel));
-        image(t, (i%3)*120+20, (i/3)*120+20);
+        image(t, sqPos[i].getX(), sqPos[i].getY());
       }
     }
   } // STATE_FADE
@@ -201,14 +266,14 @@ void draw() {
     if (myAudio[playingNum].isPlaying() == false) {
       // if position is 0, then it hasn't started playing...
       // play sound
-      if(myAudio[playingNum].position() == 0) {
+      if (myAudio[playingNum].position() == 0) {
         System.out.println("start Playing");
         // start sound
         myAudio[playingNum].play();
         // show text...
         fill(255, 255, 255);
-        text((playingNum+": blah blablalhabl ajhakjhdkj ak kdajh dakj d akhd jsd h"), 
-        (playingNum%3)*120+20, (1-(playingNum/3))*120+20, 100, 100);
+        text(theTxt[playingNum], sqPos[txtIndex].getX(), sqPos[txtIndex].getY(), 
+        sqDim[txtIndex].getX(), sqDim[txtIndex].getY());
       }
       // else, it stopped for some other reason (stop or end of file)
       // rewind and go back to fade
@@ -219,7 +284,9 @@ void draw() {
         myState = STATE_FADE;
         // erase text...
         fill(0, 0, 0, 128);
-        rect((playingNum%3)*120+20, (1-(playingNum/3))*120+20, 100, 100);
+        rect(sqPos[txtIndex].getX(), sqPos[txtIndex].getY(), 
+        sqDim[txtIndex].getX(), sqDim[txtIndex].getY());
+        // for smoothing the fade back
         delay(500);
       }
     }
@@ -259,15 +326,50 @@ public void stop() {
 
 // stupid function for fading squares...
 void setAlpha(PImage img, int a) {
-  for (int i=0; i<img.height; i++) {
-    for (int j=0; j<img.width; j++) {
+  for (int i=0; i<img.width; i++) {
+    for (int j=0; j<img.height; j++) {
       img.set(i, j, color(255, 255, 255, a));
     }
   }
 }
 
-// stupid class for keeping x,y info
-public class Tuple {
-  public int x, y;
+///////////////////////////
+// helper classes for keeping 2 floats together
+////////////////////////////
+public class floatTuple {
+  private float x, y, sum;
+
+  public floatTuple(float x, float y) {
+    this.x = x;
+    this.y = y;
+    this.sum = x+y;
+  }
+
+  public float getX() { 
+    return x;
+  }
+  public float getY() { 
+    return y;
+  }
+  public float getSum() { 
+    return sum;
+  }
+}
+
+/////////////////////////////////
+public class intTuple {
+  private int x, y;
+
+  public intTuple(int x, int y) {
+    this.x = x;
+    this.y = y;
+  }
+
+  public int getX() { 
+    return x;
+  }
+  public int getY() { 
+    return y;
+  }
 }
 
