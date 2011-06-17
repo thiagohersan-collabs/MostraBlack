@@ -127,7 +127,7 @@ void setup() {
 
 
   for (int i=7; i<NUM_SQS; i++) {
-    String s = new String(i+": ");
+    s = new String(i+": ");
     for (int j=0; j<i; j++) {
       s = s.concat(String.valueOf(i));
     }
