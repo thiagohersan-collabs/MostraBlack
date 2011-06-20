@@ -12,7 +12,7 @@ import processing.opengl.*;
 import ddf.minim.*;
 
 // number of squares on the wall...
-static final int NUM_SQS = 12;
+static final int NUM_SQS = 10;
 
 // font size
 static final int FONTSIZE = 16;
@@ -52,6 +52,7 @@ AudioPlayer[] myAudio = new AudioPlayer[NUM_SQS];
 
 void setup() {
   size(1024, 768, P2D);
+  smooth();
   background(0, 0, 0);
   println(Serial.list());
 
@@ -127,7 +128,9 @@ void setup() {
 
   myQuads.beginDraw();
   myQuads.background(0, 0, 0, 255);
-  myQuads.fill(#99182c);
+  //myQuads.fill(#99182c);
+  myQuads.fill(#ff0000);
+  myQuads.smooth();
   for (int i=0; i<NUM_SQS; i++) {
     myQuads.quad(quadPos[i].getX(0), quadPos[i].getY(0), quadPos[i].getX(1), quadPos[i].getY(1), quadPos[i].getX(2), quadPos[i].getY(2), quadPos[i].getX(3), quadPos[i].getY(3));
   }
@@ -143,7 +146,8 @@ void setup() {
 
 
   // setup serial port
-  //mySerial = new Serial(this, (String)Serial.list()[0], 9600);
+  //mySerial = new Serial(this, (String)Serial.list()[0], 19200);
+  //mySerial.bufferUntil('\n');
 
   // setup font
   //String[] fontList = PFont.list();
@@ -154,6 +158,40 @@ void setup() {
   //fill(255, 255, 255);
   // initial state
   myState = STATE_START;
+  //delay(500);
+  mySerial = new Serial(this, (String)Serial.list()[0], 19200);
+  mySerial.bufferUntil('\n');
+}
+
+
+void serialEvent(Serial p) {
+  int myRead = p.read();
+  if (myRead == 'A') {
+    mySerial.write('A');
+    // update state
+    myState = STATE_LISTEN;
+    System.out.println("started listening");
+    p.clear();
+  }
+  else if (myState == STATE_LISTEN) {
+    playingNum = myRead;
+    // setup audio player
+    // paranoid. this should already be at 0
+    myAudio[playingNum].rewind();
+    // play what you just got
+    myState = STATE_FADE;
+    println("got go from: "+ playingNum);
+    p.clear();
+  }
+  else if (myState == STATE_PLAY) {
+    if ( myRead == playingNum ) {
+      System.out.println("STOP Playing");
+      // stop audio
+      myAudio[playingNum].pause();
+      p.clear();
+      //playingNum = myRead;
+    }
+  }
 }
 
 void draw() {
@@ -163,27 +201,30 @@ void draw() {
   //               request data
   //               wait
   if (myState == STATE_START) {
-    // if there's stuff on serial
-    if ((mySerial != null) && (mySerial.available() > 0)) {
-      int myRead = mySerial.read();
-      // got start signal
-      if (myRead == 'A') {
-        // send start signal
-        mySerial.write('A');
-        // update state
-        myState = STATE_LISTEN;
-        System.out.println("started listening");
-        // very last thing before going to LISTEN
-        mySerial.clear();
+    delay(10);
+    if (false) {
+      // if there's stuff on serial
+      if ((mySerial.available() > 0)) {
+        int myRead = mySerial.read();
+        // got start signal
+        if (myRead == 'A') {
+          // send start signal
+          mySerial.write('A');
+          // update state
+          myState = STATE_LISTEN;
+          System.out.println("started listening");
+          // very last thing before going to LISTEN
+          mySerial.clear();
+        }
+        // got something, but didn't get start signal... keep waiting
+        else {
+          myState = STATE_START;
+        }
       }
-      // got something, but didn't get start signal... keep waiting
+      // nothing on serial... keep waiting
       else {
         myState = STATE_START;
       }
-    }
-    // nothing on serial... keep waiting
-    else {
-      myState = STATE_START;
     }
   }
 
@@ -191,46 +232,51 @@ void draw() {
   //                wait for data from the other side
   //                invariant : the serial buf is clear when we come in the first time
   else if (myState == STATE_LISTEN) {
-    // assume buf was cleared before we got here
-    // if there's stuff on serial, it's new
-    if ((mySerial != null)&&(mySerial.available() > 0)) {
-      int myRead = mySerial.last();
-      // read number into a variable
-      // READ IT HERE! and check if it's a number!!
-      if ((myRead > -1) && (myRead < NUM_SQS)) {
-        // check if it got the text square number, do nothing
-        /*
+    delay(10);
+    if (false) {
+      // assume buf was cleared before we got here
+      // if there's stuff on serial, it's new
+      if ((mySerial != null)&&(mySerial.available() > 0)) {
+        int myRead = mySerial.last();
+        // read number into a variable
+        // READ IT HERE! and check if it's a number!!
+        if ((myRead > -1) && (myRead < NUM_SQS)) {
+          // check if it got the text square number, do nothing
+
+          /*
         if (myRead == txtIndex) {
-         // redundant
-         System.out.println("Got the text index from arduino... hmmm....");
-         myState = STATE_LISTEN;
-         }
-         */
-        if (false) {
+           // redundant
+           System.out.println("Got the text index from arduino... hmmm....");
+           myState = STATE_LISTEN;
+           }
+           */
+
+          if (false) {
+          }
+          // not the text square index, do stuff
+          else {
+            playingNum = myRead;
+            System.out.println("Got Go From: "+myRead);
+            // setup audio player
+            // paranoid. this should already be at 0
+            myAudio[playingNum].rewind();
+            // play what you just got
+            myState = STATE_FADE;
+          }
         }
-        // not the text square index, do stuff
+        // number < 0 OR number > NUM_SQS
         else {
-          playingNum = myRead;
-          System.out.println("Got Go From: "+myRead);
-          // setup audio player
-          // paranoid. this should already be at 0
-          myAudio[playingNum].rewind();
-          // play what you just got
-          myState = STATE_FADE;
+          myState = STATE_LISTEN;
+          System.out.println("Read a number out of bounds...  "+myRead+"  . Problem in serial com (??)");
         }
       }
-      // number < 0 OR number > NUM_SQS
+      // else, keep playing default stuff and listening
       else {
+        // play default a/v stuff
+        // MIGHT have to play an audio, or text, otherwise just stay here
+        // stay here
         myState = STATE_LISTEN;
-        System.out.println("Read a number out of bounds...  "+myState+"  . Problem in serial com (??)");
       }
-    }
-    // else, keep playing default stuff and listening
-    else {
-      // play default a/v stuff
-      // MIGHT have to play an audio, or text, otherwise just stay here
-      // stay here
-      myState = STATE_LISTEN;
     }
   }
 
@@ -253,10 +299,6 @@ void draw() {
       fadeLevel = 1;
       // next state
       myState = STATE_PLAY;
-
-      // FOR DEBUGGING ONLYYYYYY
-      myState = STATE_FADE;
-      delay(500);
       // last thing we do here : clear buff
       if (mySerial != null) {
         mySerial.clear();
@@ -300,8 +342,9 @@ void draw() {
        }
        */
       myQuads.beginDraw();
+      myQuads.smooth();
       myQuads.background(0, 0, 0, 255);
-      myQuads.fill(#99182c);
+      //myQuads.fill(#99182c);
       //myQuads.fill(255,0,0);
       myQuads.fill(255, 255, 255, 255);
       myQuads.quad(quadPos[playingNum].getX(0), quadPos[playingNum].getY(0), quadPos[playingNum].getX(1), quadPos[playingNum].getY(1), quadPos[playingNum].getX(2), quadPos[playingNum].getY(2), quadPos[playingNum].getX(3), quadPos[playingNum].getY(3));
@@ -310,6 +353,7 @@ void draw() {
         // alpha!!!
         //myQuads.fill(#99182c, (i==playingNum)?255:abs(fadeLevel));
         myQuads.fill(#99182c, abs(fadeLevel));
+        //myQuads.fill(255,0,0, abs(fadeLevel));
         myQuads.quad(quadPos[i].getX(0), quadPos[i].getY(0), quadPos[i].getX(1), quadPos[i].getY(1), quadPos[i].getX(2), quadPos[i].getY(2), quadPos[i].getX(3), quadPos[i].getY(3));
       }
       myQuads.endDraw();
@@ -353,24 +397,26 @@ void draw() {
     // while playing, keep playing and listening for stop requests
     else {
       // if there's stuff on serial, it's new
-      if (mySerial.available() > 0) {
-        // if it's the same number that is playing, stop audio
-        if ( mySerial.last() == playingNum ) {
-          System.out.println("STOP Playing");
-          // stop audio
-          myAudio[playingNum].pause();
-        }
-        // got a different number
-        else {
-          // keep playing
-          myState = STATE_PLAY;
-        }
-      }
-      // nothing on serial... keep playing
-      else {
-        // keep playing
-        myState = STATE_PLAY;
-      }
+      /*
+        if (mySerial.available() > 0) {
+       // if it's the same number that is playing, stop audio
+       if ( mySerial.last() == playingNum ) {
+       System.out.println("STOP Playing");
+       // stop audio
+       myAudio[playingNum].pause();
+       }
+       // got a different number
+       else {
+       // keep playing
+       myState = STATE_PLAY;
+       }
+       }
+       // nothing on serial... keep playing
+       else {
+       // keep playing
+       myState = STATE_PLAY;
+       }
+       */
     }
   } // STATE_PLAY
 } // draw()
