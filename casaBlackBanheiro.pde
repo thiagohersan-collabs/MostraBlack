@@ -32,9 +32,6 @@ int myState;
 int playingNum;
 int fadeLevel;
 
-// for light square position and dimension
-//intTuple[] sqPos  = new intTuple[NUM_SQS];
-//intTuple[] sqDim  = new intTuple[NUM_SQS];
 intOct[]   quadPos = new intOct[NUM_SQS];
 
 //int txtIndex = -1;
@@ -43,7 +40,6 @@ intOct[]   quadPos = new intOct[NUM_SQS];
 //String[] theTxt = new String[NUM_SQS];
 
 // Images of squares to be updated
-//PImage[]    mySquares = new PImage[NUM_SQS];
 PGraphics   myQuads = null;
 
 // Serial connection
@@ -71,30 +67,6 @@ void setup() {
   // fill position and dimension arrays
   //    for the light squares and text squares
 
-  /*
-  reader = createReader("casaBlackSquarePositions.txt");    
-   
-   // read position from file...
-   for (int i=0; i< NUM_SQS; i++) {
-   try {
-   readerLine = reader.readLine();
-   } 
-   catch (IOException e) {
-   e.printStackTrace();
-   readerLine = null;
-   }
-   
-   String[] pieces = split(readerLine, TAB);
-   println(int(pieces[0])+" "+int(pieces[1]));
-   
-   intTuple itSP = new intTuple(int(pieces[0]), int(pieces[1]));
-   intTuple itSD = new intTuple(int(pieces[2]), int(pieces[3]));
-   
-   sqPos[i] = itSP;
-   sqDim[i] = itSD;
-   }
-   */
-
   ///////////////
   // for QUADS
   // fill position and dimension arrays
@@ -112,17 +84,13 @@ void setup() {
     }
 
     String[] pieces = split(readerLine, TAB);
-    //println(int(pieces[0])+" "+int(pieces[1]));
-
     quadPos[i] = new intOct(int(pieces[0]), int(pieces[1]), int(pieces[2]), int(pieces[3]), int(pieces[4]), int(pieces[5]), int(pieces[6]), int(pieces[7]));
   }
 
 
-
-
   // for the text....
   /*
-  txtIndex = 9;
+  txtIndex = 10;
    
    String s = new String("Bom, para mim é muito mais um sentimento do que um lugar, ou um lugar físico mesmo. Você pode se sentir no seu lar fora da sua casa , você pode ter este sentimento na casa da sua mãe , na casa de um amigo, onde você chega e quer tirar o sapato, e fica a vontade, deita na cama, mesmo ela não sendo sua fisicamente.  Então, para mim, o sentimento de lar não é físico.\n\nE também por outro lado, é um lugar onde você quer chegar no final do dia, um  lugar onde você quer passar momentos exclusivos e privados, um lugar onde você pode fazer de tudo, e este é o sentimento mais completo de lar.");
    theTxt[0] = s;  
@@ -160,25 +128,17 @@ void setup() {
   myQuads.beginDraw();
   myQuads.background(0, 0, 0, 255);
   myQuads.fill(#99182c);
-  //myQuads.fill(255,0,0);
   for (int i=0; i<NUM_SQS; i++) {
     myQuads.quad(quadPos[i].getX(0), quadPos[i].getY(0), quadPos[i].getX(1), quadPos[i].getY(1), quadPos[i].getX(2), quadPos[i].getY(2), quadPos[i].getX(3), quadPos[i].getY(3));
   }
   myQuads.endDraw();
 
-  // draw some white squares
+  // init audio
   for (int i=0; i<NUM_SQS; i++) {
-    /*
-    PImage t = createImage(sqDim[i].getX(), sqDim[i].getY(), ARGB);
-     for (int j=0; j<t.width; j++)
-     for (int k=0; k<t.height; k++)
-     t.set(j, k, color(255, 255, 255, 255));
-     mySquares[i] = t;
-     image(t, sqPos[i].getX(), sqPos[i].getY());
-     */
     // audio streams
     myAudio[i] = minim.loadFile("file"+i+".aif");
   }
+
   image(myQuads, 0, 0);
 
 
