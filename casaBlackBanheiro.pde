@@ -55,7 +55,7 @@ Minim minim;
 AudioPlayer[] myAudio = new AudioPlayer[NUM_SQS];
 
 void setup() {
-  size(1024, 768, OPENGL);
+  size(1024, 768, P2D);
   background(0, 0, 0);
   println(Serial.list());
 
@@ -293,8 +293,14 @@ void draw() {
       fadeLevel = 1;
       // next state
       myState = STATE_PLAY;
+
+      // FOR DEBUGGING ONLYYYYYY
+      myState = STATE_FADE;
+      delay(500);
       // last thing we do here : clear buff
-      mySerial.clear();
+      if (mySerial != null) {
+        mySerial.clear();
+      }
     }
     // have turned up all of the lights. ready to leave
     else if (fadeLevel > 255) {
@@ -305,7 +311,9 @@ void draw() {
       // go back to listen
       myState = STATE_LISTEN;
       // last thing we do here : clear buf
-      mySerial.clear();
+      if (mySerial != null) {
+        mySerial.clear();
+      }
     }
     // while fading... keep fading...
     else {
@@ -335,9 +343,13 @@ void draw() {
       myQuads.background(0, 0, 0, 255);
       myQuads.fill(#99182c);
       //myQuads.fill(255,0,0);
+      myQuads.fill(255, 255, 255, 255);
+      myQuads.quad(quadPos[playingNum].getX(0), quadPos[playingNum].getY(0), quadPos[playingNum].getX(1), quadPos[playingNum].getY(1), quadPos[playingNum].getX(2), quadPos[playingNum].getY(2), quadPos[playingNum].getX(3), quadPos[playingNum].getY(3));
+
       for (int i=0; i<NUM_SQS; i++) {
         // alpha!!!
-        myQuads.fill(#99182c, (i==playingNum)?255:abs(fadeLevel));
+        //myQuads.fill(#99182c, (i==playingNum)?255:abs(fadeLevel));
+        myQuads.fill(#99182c, abs(fadeLevel));
         myQuads.quad(quadPos[i].getX(0), quadPos[i].getY(0), quadPos[i].getX(1), quadPos[i].getY(1), quadPos[i].getX(2), quadPos[i].getY(2), quadPos[i].getX(3), quadPos[i].getY(3));
       }
       myQuads.endDraw();
