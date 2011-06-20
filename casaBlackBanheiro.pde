@@ -7,18 +7,6 @@
  *
  */
 
-/*
- *  Ordem:
- *    [0] : Alexandre
- *    [1] : Caco
- *    [2] : Esmeralda
- *    [3] : Facundo
- *    [4] : Mauricio
- *    [5] : Paula
- *    [6] : Val
- *
- */
-
 import processing.serial.*;
 import processing.opengl.*;
 import ddf.minim.*;
@@ -45,23 +33,23 @@ int playingNum;
 int fadeLevel;
 
 // for light square position and dimension
-intTuple[] sqPos  = new intTuple[NUM_SQS];
-intTuple[] sqDim  = new intTuple[NUM_SQS];
+//intTuple[] sqPos  = new intTuple[NUM_SQS];
+//intTuple[] sqDim  = new intTuple[NUM_SQS];
 intOct[]   quadPos = new intOct[NUM_SQS];
 
-int txtIndex = -1;
+//int txtIndex = -1;
 
 // text to be displayed with each sound
-String[] theTxt = new String[NUM_SQS];
+//String[] theTxt = new String[NUM_SQS];
 
 // Images of squares to be updated
-PImage[]    mySquares = new PImage[NUM_SQS];
+//PImage[]    mySquares = new PImage[NUM_SQS];
 PGraphics   myQuads = null;
 
 // Serial connection
 Serial mySerial = null;
 // font
-PFont font;
+//PFont font;
 // sound file streams
 Minim minim;
 AudioPlayer[] myAudio = new AudioPlayer[NUM_SQS];
@@ -82,27 +70,30 @@ void setup() {
 
   // fill position and dimension arrays
   //    for the light squares and text squares
+
+  /*
   reader = createReader("casaBlackSquarePositions.txt");    
-
-  // read position from file...
-  for (int i=0; i< NUM_SQS; i++) {
-    try {
-      readerLine = reader.readLine();
-    } 
-    catch (IOException e) {
-      e.printStackTrace();
-      readerLine = null;
-    }
-
-    String[] pieces = split(readerLine, TAB);
-    //println(int(pieces[0])+" "+int(pieces[1]));
-
-    intTuple itSP = new intTuple(int(pieces[0]), int(pieces[1]));
-    intTuple itSD = new intTuple(int(pieces[2]), int(pieces[3]));
-
-    sqPos[i] = itSP;
-    sqDim[i] = itSD;
-  }
+   
+   // read position from file...
+   for (int i=0; i< NUM_SQS; i++) {
+   try {
+   readerLine = reader.readLine();
+   } 
+   catch (IOException e) {
+   e.printStackTrace();
+   readerLine = null;
+   }
+   
+   String[] pieces = split(readerLine, TAB);
+   println(int(pieces[0])+" "+int(pieces[1]));
+   
+   intTuple itSP = new intTuple(int(pieces[0]), int(pieces[1]));
+   intTuple itSD = new intTuple(int(pieces[2]), int(pieces[3]));
+   
+   sqPos[i] = itSP;
+   sqDim[i] = itSD;
+   }
+   */
 
   ///////////////
   // for QUADS
@@ -130,38 +121,38 @@ void setup() {
 
 
   // for the text....
+  /*
   txtIndex = 9;
-
-  String s = new String("Bom, para mim é muito mais um sentimento do que um lugar, ou um lugar físico mesmo. Você pode se sentir no seu lar fora da sua casa , você pode ter este sentimento na casa da sua mãe , na casa de um amigo, onde você chega e quer tirar o sapato, e fica a vontade, deita na cama, mesmo ela não sendo sua fisicamente.  Então, para mim, o sentimento de lar não é físico.\n\nE também por outro lado, é um lugar onde você quer chegar no final do dia, um  lugar onde você quer passar momentos exclusivos e privados, um lugar onde você pode fazer de tudo, e este é o sentimento mais completo de lar.");
-  theTxt[0] = s;  
-
-  s = new String("Bom, a gente é quem transforma uma casa num  lar. não  é ?\n\nUma casa é um espaço físico qualquer, e a gente preenche este espaço físico aos poucos, inclusive, né ? com objetos que nos tragam conforto, com objetos que nos remetam a lembranças.\n\nO lar tem que ser essencialmente um lugar de conforto. Um lugar que te traga conforto, um lugar de descanso não só físico como mental e espiritual,  e um lugar de renovação também, um lugar de limpeza, de fortificação  e de renovação. Então, para isso a gente preenche a nossa casa com coisas,  com objetos que nos propiciem este tipo de sensação, com pessoas que nos propiciem este tipo de sensação, com bichos de estimação que nos propiciem este tipo de sensação . Então, acho que em última análise, o que transforma uma casa em um lar somos nós, projetando  nessa casa,  ocupando essa casa com objetos, pessoas, seres, lembranças que nos tragam conforto e que nos religuem com a nossa essência, para que o lar seja este lugar especial e único onde você tem o mais profundo descanso e encontro consigo próprio, para que você possa se renovar e sair do seu lar para enfrentar oque tiver que enfrentar.");
-  theTxt[1] = s;
-
-  s = new String("O que faz de uma casa um lar, na minha opinião, primeiro vem o casamento, com amor , no meu caso que fui casada por quarenta anos , aí vem os filhos desejados, então este lar fica mais perfeito, porque estes filhos vêm, ‘é’ cuidado com muito carinho de pai e mãe , começam a crescer, começam a falar, começam a caminhar, a mãe manda pra escola, a mãe cuida das comidinhas do dia-a-dia com o maior carinho.\n\nEu, para mim, um lar é tudo o que eu quero, com meus filhos ao redor de mim, hoje estão casados, tenho oito netos, meu neto mais velho tem dezoito, o mais novo tem nove, e eu acho que a minha vida é...\n\nHoje eu sou viúva, espero um dia encontrar um casamento de novo. Para mim, o casamento é maravilhoso, e meu lar então para mim, é só isso mesmo, amor, muito amor , harmonia, cada vez que o marido chega, que os filhos chegam, abraços, te amo.\n\nPara mim, o lar é este, e do dia-a-dia que eu trabalho contente, feliz com meus patrões com meus amigos que ‘é’ vocês aqui, nossa, amo vocês.\n\nEntão, tá certo, no mais,  não tem muito mais não, além de muito amor, acho que não tem mais nada num lar a não ser isso, é isso ai, perfeito, meu lar eu acho perfeito.");
-  theTxt[2] = s;
-
-  s = new String("Então, o que transforma para mim uma casa num lar é quando você consegue decodificar dentro de um espaço, de uma linha arquitetônica, ou mesmo de um design de interior, você consegue interpretar a personalidade da pessoa que ocupa aquele espaço.\n\nPara mim, não existe certo ou errado quando você fala de arquitetura, ou mesmo de design de interior, ou mesmo de design; Existe sim, uma projeção da personalidade da pessoa que ocupa aquele espaço, nas suas paredes, no seu mobiliário, na sua arquitetura.\n\nQuando você consegue entrar dentro de um determinado ambiente e ler a pessoa que ocupa aquele espaço, eu acho que sim , você esta entrando no domínio de um lar e não numa casa qualquer. A casa não tem personalidade, o lar, ele espelha exatamente a personalidade do habitante dele, ele é uma cristalização, uma explosão da personalidade da pessoa que frequenta aquele espaço, em objetos, em linhas , em arquitetura e em design.");
-  theTxt[3] = s;
-
-  s = new String("ALMA –O que faz de uma casa um lar é ela ter ou não alma, ela ter gente morando dentro dela, ela ter vida, ela ser um ser vivo, ter cachorro dentro de casa também é uma coisa que faz de uma casa um lar.");
-  theTxt[4] = s;
-
-  s = new String("Bom, o que faz a casa da gente virar um lar eu acho que é decoração, acho que a decoração é muito importante, os objetos que você vai escolhendo pra aquela casa, do jeitinho como você vai fazendo a sua casa ficar, e acho que é a energia, a sua energia, a energia das pessoas que frequentam sua casa,  acho que é  um conjunto de coisas , acho que muito a decoração, muito o jeito que você  dá  pra sua casa, as cores, os objetos e a tua energia também.");
-  theTxt[5] = s;
-
-  s = new String("Hello... Para mim o que faz da casa um lar, além do aconchego, uma boa adega, um lugar predileto, um bom tapete para você se jogar no chão, uma tv grande para você assistir um filme, ai gente, hello, tantas coisas....");
-  theTxt[6] = s;
-
-
-  for (int i=7; i<NUM_SQS; i++) {
-    s = new String(i+": ");
-    for (int j=0; j<i; j++) {
-      s = s.concat(String.valueOf(i));
-    }
-    theTxt[i] = s;
-  }
-
+   
+   String s = new String("Bom, para mim é muito mais um sentimento do que um lugar, ou um lugar físico mesmo. Você pode se sentir no seu lar fora da sua casa , você pode ter este sentimento na casa da sua mãe , na casa de um amigo, onde você chega e quer tirar o sapato, e fica a vontade, deita na cama, mesmo ela não sendo sua fisicamente.  Então, para mim, o sentimento de lar não é físico.\n\nE também por outro lado, é um lugar onde você quer chegar no final do dia, um  lugar onde você quer passar momentos exclusivos e privados, um lugar onde você pode fazer de tudo, e este é o sentimento mais completo de lar.");
+   theTxt[0] = s;  
+   
+   s = new String("Bom, a gente é quem transforma uma casa num  lar. não  é ?\n\nUma casa é um espaço físico qualquer, e a gente preenche este espaço físico aos poucos, inclusive, né ? com objetos que nos tragam conforto, com objetos que nos remetam a lembranças.\n\nO lar tem que ser essencialmente um lugar de conforto. Um lugar que te traga conforto, um lugar de descanso não só físico como mental e espiritual,  e um lugar de renovação também, um lugar de limpeza, de fortificação  e de renovação. Então, para isso a gente preenche a nossa casa com coisas,  com objetos que nos propiciem este tipo de sensação, com pessoas que nos propiciem este tipo de sensação, com bichos de estimação que nos propiciem este tipo de sensação . Então, acho que em última análise, o que transforma uma casa em um lar somos nós, projetando  nessa casa,  ocupando essa casa com objetos, pessoas, seres, lembranças que nos tragam conforto e que nos religuem com a nossa essência, para que o lar seja este lugar especial e único onde você tem o mais profundo descanso e encontro consigo próprio, para que você possa se renovar e sair do seu lar para enfrentar oque tiver que enfrentar.");
+   theTxt[1] = s;
+   
+   s = new String("O que faz de uma casa um lar, na minha opinião, primeiro vem o casamento, com amor , no meu caso que fui casada por quarenta anos , aí vem os filhos desejados, então este lar fica mais perfeito, porque estes filhos vêm, ‘é’ cuidado com muito carinho de pai e mãe , começam a crescer, começam a falar, começam a caminhar, a mãe manda pra escola, a mãe cuida das comidinhas do dia-a-dia com o maior carinho.\n\nEu, para mim, um lar é tudo o que eu quero, com meus filhos ao redor de mim, hoje estão casados, tenho oito netos, meu neto mais velho tem dezoito, o mais novo tem nove, e eu acho que a minha vida é...\n\nHoje eu sou viúva, espero um dia encontrar um casamento de novo. Para mim, o casamento é maravilhoso, e meu lar então para mim, é só isso mesmo, amor, muito amor , harmonia, cada vez que o marido chega, que os filhos chegam, abraços, te amo.\n\nPara mim, o lar é este, e do dia-a-dia que eu trabalho contente, feliz com meus patrões com meus amigos que ‘é’ vocês aqui, nossa, amo vocês.\n\nEntão, tá certo, no mais,  não tem muito mais não, além de muito amor, acho que não tem mais nada num lar a não ser isso, é isso ai, perfeito, meu lar eu acho perfeito.");
+   theTxt[2] = s;
+   
+   s = new String("Então, o que transforma para mim uma casa num lar é quando você consegue decodificar dentro de um espaço, de uma linha arquitetônica, ou mesmo de um design de interior, você consegue interpretar a personalidade da pessoa que ocupa aquele espaço.\n\nPara mim, não existe certo ou errado quando você fala de arquitetura, ou mesmo de design de interior, ou mesmo de design; Existe sim, uma projeção da personalidade da pessoa que ocupa aquele espaço, nas suas paredes, no seu mobiliário, na sua arquitetura.\n\nQuando você consegue entrar dentro de um determinado ambiente e ler a pessoa que ocupa aquele espaço, eu acho que sim , você esta entrando no domínio de um lar e não numa casa qualquer. A casa não tem personalidade, o lar, ele espelha exatamente a personalidade do habitante dele, ele é uma cristalização, uma explosão da personalidade da pessoa que frequenta aquele espaço, em objetos, em linhas , em arquitetura e em design.");
+   theTxt[3] = s;
+   
+   s = new String("ALMA –O que faz de uma casa um lar é ela ter ou não alma, ela ter gente morando dentro dela, ela ter vida, ela ser um ser vivo, ter cachorro dentro de casa também é uma coisa que faz de uma casa um lar.");
+   theTxt[4] = s;
+   
+   s = new String("Bom, o que faz a casa da gente virar um lar eu acho que é decoração, acho que a decoração é muito importante, os objetos que você vai escolhendo pra aquela casa, do jeitinho como você vai fazendo a sua casa ficar, e acho que é a energia, a sua energia, a energia das pessoas que frequentam sua casa,  acho que é  um conjunto de coisas , acho que muito a decoração, muito o jeito que você  dá  pra sua casa, as cores, os objetos e a tua energia também.");
+   theTxt[5] = s;
+   
+   s = new String("Hello... Para mim o que faz da casa um lar, além do aconchego, uma boa adega, um lugar predileto, um bom tapete para você se jogar no chão, uma tv grande para você assistir um filme, ai gente, hello, tantas coisas....");
+   theTxt[6] = s;
+   
+   for (int i=7; i<NUM_SQS; i++) {
+   s = new String(i+": ");
+   for (int j=0; j<i; j++) {
+   s = s.concat(String.valueOf(i));
+   }
+   theTxt[i] = s;
+   }
+   */
 
   myQuads = createGraphics(width, height, P2D);
   hint(DISABLE_OPENGL_ERROR_REPORT);
@@ -177,30 +168,30 @@ void setup() {
 
   // draw some white squares
   for (int i=0; i<NUM_SQS; i++) {
+    /*
     PImage t = createImage(sqDim[i].getX(), sqDim[i].getY(), ARGB);
-    for (int j=0; j<t.width; j++)
-      for (int k=0; k<t.height; k++)
-        t.set(j, k, color(255, 255, 255, 255));
-    mySquares[i] = t;
-    image(t, sqPos[i].getX(), sqPos[i].getY());
-
-    image(myQuads, 0, 0);
-
-
+     for (int j=0; j<t.width; j++)
+     for (int k=0; k<t.height; k++)
+     t.set(j, k, color(255, 255, 255, 255));
+     mySquares[i] = t;
+     image(t, sqPos[i].getX(), sqPos[i].getY());
+     */
     // audio streams
     myAudio[i] = minim.loadFile("file"+i+".aif");
   }
+  image(myQuads, 0, 0);
+
 
   // setup serial port
   //mySerial = new Serial(this, (String)Serial.list()[0], 9600);
 
   // setup font
-  String[] fontList = PFont.list();
+  //String[] fontList = PFont.list();
   //println(fontList);
   // futura 228 - 231
-  font = createFont(fontList[228], FONTSIZE, true);
-  textFont(font, FONTSIZE);
-  fill(255, 255, 255);
+  //font = createFont(fontList[228], FONTSIZE, true);
+  //textFont(font, FONTSIZE);
+  //fill(255, 255, 255);
   // initial state
   myState = STATE_START;
 }
@@ -248,10 +239,14 @@ void draw() {
       // READ IT HERE! and check if it's a number!!
       if ((myRead > -1) && (myRead < NUM_SQS)) {
         // check if it got the text square number, do nothing
+        /*
         if (myRead == txtIndex) {
-          // redundant
-          System.out.println("Got the text index from arduino... hmmm....");
-          myState = STATE_LISTEN;
+         // redundant
+         System.out.println("Got the text index from arduino... hmmm....");
+         myState = STATE_LISTEN;
+         }
+         */
+        if (false) {
         }
         // not the text square index, do stuff
         else {
@@ -328,13 +323,14 @@ void draw() {
       // only update the background when we are changing/creating an image
       background(0, 0, 0);
       // redraw all squares with fade levels, but keep the selected one white
+      /*
       for (int i=0; i<NUM_SQS; i++) {
-        PImage t = mySquares[i];
-        // change the fade in all squares, except the one that's playing
-        setAlpha(t, (i==playingNum)?255:abs(fadeLevel));
-        image(t, sqPos[i].getX(), sqPos[i].getY());
-      }
-
+       PImage t = mySquares[i];
+       // change the fade in all squares, except the one that's playing
+       setAlpha(t, (i==playingNum)?255:abs(fadeLevel));
+       image(t, sqPos[i].getX(), sqPos[i].getY());
+       }
+       */
       myQuads.beginDraw();
       myQuads.background(0, 0, 0, 255);
       myQuads.fill(#99182c);
@@ -362,9 +358,9 @@ void draw() {
         // start sound
         myAudio[playingNum].play();
         // show text...
-        fill(255, 255, 255);
-        text(theTxt[playingNum], sqPos[txtIndex].getX(), sqPos[txtIndex].getY(), 
-        sqDim[txtIndex].getX(), sqDim[txtIndex].getY());
+        //fill(255, 255, 255);
+        //text(theTxt[playingNum], sqPos[txtIndex].getX(), sqPos[txtIndex].getY(), 
+        //sqDim[txtIndex].getX(), sqDim[txtIndex].getY());
       }
       // else, it stopped for some other reason (stop or end of file)
       // rewind and go back to fade
@@ -374,9 +370,9 @@ void draw() {
         // go back to fade state for fade in
         myState = STATE_FADE;
         // erase text...
-        fill(0, 0, 0, 128);
-        rect(sqPos[txtIndex].getX(), sqPos[txtIndex].getY(), 
-        sqDim[txtIndex].getX(), sqDim[txtIndex].getY());
+        //fill(0, 0, 0, 128);
+        //rect(sqPos[txtIndex].getX(), sqPos[txtIndex].getY(), 
+        //sqDim[txtIndex].getX(), sqDim[txtIndex].getY());
         // for smoothing the fade back
         delay(500);
       }
