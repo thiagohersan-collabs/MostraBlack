@@ -47,6 +47,7 @@ int fadeLevel;
 // for light square position and dimension
 intTuple[] sqPos  = new intTuple[NUM_SQS];
 intTuple[] sqDim  = new intTuple[NUM_SQS];
+intOct[]   quadPos = new intOct[NUM_SQS];
 
 int txtIndex = -1;
 
@@ -54,7 +55,9 @@ int txtIndex = -1;
 String[] theTxt = new String[NUM_SQS];
 
 // Images of squares to be updated
-PImage[] mySquares = new PImage[NUM_SQS];
+PImage[]    mySquares = new PImage[NUM_SQS];
+PGraphics   myQuads = null;
+
 // Serial connection
 Serial mySerial = null;
 // font
@@ -101,6 +104,31 @@ void setup() {
     sqDim[i] = itSD;
   }
 
+  ///////////////
+  // for QUADS
+  // fill position and dimension arrays
+  //    for the light squares and text squares
+  reader = createReader("casaBlackQuadPositions.txt");    
+
+  // read position from file...
+  for (int i=0; i< NUM_SQS; i++) {
+    try {
+      readerLine = reader.readLine();
+    } 
+    catch (IOException e) {
+      e.printStackTrace();
+      readerLine = null;
+    }
+
+    String[] pieces = split(readerLine, TAB);
+    //println(int(pieces[0])+" "+int(pieces[1]));
+
+    quadPos[i] = new intOct(int(pieces[0]), int(pieces[1]), int(pieces[2]), int(pieces[3]), int(pieces[4]), int(pieces[5]), int(pieces[6]), int(pieces[7]));
+  }
+
+
+
+
   // for the text....
   txtIndex = 9;
 
@@ -112,7 +140,7 @@ void setup() {
 
   s = new String("O que faz de uma casa um lar, na minha opinião, primeiro vem o casamento, com amor , no meu caso que fui casada por quarenta anos , aí vem os filhos desejados, então este lar fica mais perfeito, porque estes filhos vêm, ‘é’ cuidado com muito carinho de pai e mãe , começam a crescer, começam a falar, começam a caminhar, a mãe manda pra escola, a mãe cuida das comidinhas do dia-a-dia com o maior carinho.\n\nEu, para mim, um lar é tudo o que eu quero, com meus filhos ao redor de mim, hoje estão casados, tenho oito netos, meu neto mais velho tem dezoito, o mais novo tem nove, e eu acho que a minha vida é...\n\nHoje eu sou viúva, espero um dia encontrar um casamento de novo. Para mim, o casamento é maravilhoso, e meu lar então para mim, é só isso mesmo, amor, muito amor , harmonia, cada vez que o marido chega, que os filhos chegam, abraços, te amo.\n\nPara mim, o lar é este, e do dia-a-dia que eu trabalho contente, feliz com meus patrões com meus amigos que ‘é’ vocês aqui, nossa, amo vocês.\n\nEntão, tá certo, no mais,  não tem muito mais não, além de muito amor, acho que não tem mais nada num lar a não ser isso, é isso ai, perfeito, meu lar eu acho perfeito.");
   theTxt[2] = s;
-  
+
   s = new String("Então, o que transforma para mim uma casa num lar é quando você consegue decodificar dentro de um espaço, de uma linha arquitetônica, ou mesmo de um design de interior, você consegue interpretar a personalidade da pessoa que ocupa aquele espaço.\n\nPara mim, não existe certo ou errado quando você fala de arquitetura, ou mesmo de design de interior, ou mesmo de design; Existe sim, uma projeção da personalidade da pessoa que ocupa aquele espaço, nas suas paredes, no seu mobiliário, na sua arquitetura.\n\nQuando você consegue entrar dentro de um determinado ambiente e ler a pessoa que ocupa aquele espaço, eu acho que sim , você esta entrando no domínio de um lar e não numa casa qualquer. A casa não tem personalidade, o lar, ele espelha exatamente a personalidade do habitante dele, ele é uma cristalização, uma explosão da personalidade da pessoa que frequenta aquele espaço, em objetos, em linhas , em arquitetura e em design.");
   theTxt[3] = s;
 
@@ -134,6 +162,19 @@ void setup() {
     theTxt[i] = s;
   }
 
+
+  myQuads = createGraphics(width, height, P2D);
+  hint(DISABLE_OPENGL_ERROR_REPORT);
+
+  myQuads.beginDraw();
+  myQuads.background(0, 0, 0, 255);
+  myQuads.fill(#99182c);
+  //myQuads.fill(255,0,0);
+  for (int i=0; i<NUM_SQS; i++) {
+    myQuads.quad(quadPos[i].getX(0), quadPos[i].getY(0), quadPos[i].getX(1), quadPos[i].getY(1), quadPos[i].getX(2), quadPos[i].getY(2), quadPos[i].getX(3), quadPos[i].getY(3));
+  }
+  myQuads.endDraw();
+
   // draw some white squares
   for (int i=0; i<NUM_SQS; i++) {
     PImage t = createImage(sqDim[i].getX(), sqDim[i].getY(), ARGB);
@@ -143,12 +184,15 @@ void setup() {
     mySquares[i] = t;
     image(t, sqPos[i].getX(), sqPos[i].getY());
 
+    image(myQuads, 0, 0);
+
+
     // audio streams
-    myAudio[i] = minim.loadFile("file"+i+".aiff");
+    myAudio[i] = minim.loadFile("file"+i+".aif");
   }
 
   // setup serial port
-  mySerial = new Serial(this, (String)Serial.list()[0], 9600);
+  //mySerial = new Serial(this, (String)Serial.list()[0], 9600);
 
   // setup font
   String[] fontList = PFont.list();
@@ -169,7 +213,7 @@ void draw() {
   //               wait
   if (myState == STATE_START) {
     // if there's stuff on serial
-    if (mySerial.available() > 0) {
+    if ((mySerial != null) && (mySerial.available() > 0)) {
       int myRead = mySerial.read();
       // got start signal
       if (myRead == 'A') {
@@ -198,7 +242,7 @@ void draw() {
   else if (myState == STATE_LISTEN) {
     // assume buf was cleared before we got here
     // if there's stuff on serial, it's new
-    if (mySerial.available() > 0) {
+    if ((mySerial != null)&&(mySerial.available() > 0)) {
       int myRead = mySerial.last();
       // read number into a variable
       // READ IT HERE! and check if it's a number!!
@@ -290,6 +334,18 @@ void draw() {
         setAlpha(t, (i==playingNum)?255:abs(fadeLevel));
         image(t, sqPos[i].getX(), sqPos[i].getY());
       }
+
+      myQuads.beginDraw();
+      myQuads.background(0, 0, 0, 255);
+      myQuads.fill(#99182c);
+      //myQuads.fill(255,0,0);
+      for (int i=0; i<NUM_SQS; i++) {
+        // alpha!!!
+        myQuads.fill(#99182c, (i==playingNum)?255:abs(fadeLevel));
+        myQuads.quad(quadPos[i].getX(0), quadPos[i].getY(0), quadPos[i].getX(1), quadPos[i].getY(1), quadPos[i].getX(2), quadPos[i].getY(2), quadPos[i].getX(3), quadPos[i].getY(3));
+      }
+      myQuads.endDraw();
+      image(myQuads, 0, 0);
     }
   } // STATE_FADE
 
@@ -405,6 +461,47 @@ public class intTuple {
   }
   public int getY() { 
     return y;
+  }
+}
+
+
+public class intOct {
+  private int x[], y[];
+
+  public intOct(int x0, int y0, int x1, int y1, int x2, int y2, int x3, int y3) {
+    x = new int[4];
+    y = new int[4];
+
+    x[0] = x0;
+    y[0] = y0;
+    x[1] = x1;
+    y[1] = y1;
+    x[2] = x2;
+    y[2] = y2;
+    x[3] = x3;
+    y[3] = y3;
+  }
+
+  int getX(int i) {
+    return x[i];
+  }
+  int getY(int i) {
+    return y[i];
+  }
+}
+
+void keyReleased() {
+  println(key);
+  for (int i=0; i<NUM_SQS; i++) {
+    if ((key-'0') == i) {
+      playingNum = i;
+      System.out.println("Got Go From: "+i);
+      // setup audio player
+      // paranoid. this should already be at 0
+      myAudio[playingNum].rewind();
+      // play what you just got
+      myState = STATE_FADE;
+    }
   }
 }
 
